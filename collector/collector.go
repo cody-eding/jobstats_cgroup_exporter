@@ -29,7 +29,6 @@ import (
 )
 
 var (
-	collectProc        = kingpin.Flag("collect.proc", "Boolean that sets if to collect proc information").Default("false").Bool()
 	CgroupRoot         = kingpin.Flag("path.cgroup.root", "Root path to cgroup fs").Default(defCgroupRoot).String()
 	collectProcMaxExec = kingpin.Flag("collect.proc.max-exec", "Max length of process executable to record").Default("100").Int()
 	ProcRoot           = kingpin.Flag("path.proc.root", "Root path to proc fs").Default(defProcRoot).String()
@@ -66,7 +65,6 @@ type Exporter struct {
 	memswFailCount  *prometheus.Desc
 	info            *prometheus.Desc
 	uid				*prometheus.Desc
-	processExec     *prometheus.Desc
 	logger          log.Logger
 	//cgroupv2        bool
 }
@@ -93,7 +91,6 @@ type CgroupMetric struct {
 	jobid           string
 	step  			string
 	task  			string
-	processExec     map[string]float64
 	err             bool
 }
 
@@ -134,8 +131,6 @@ func NewExporter(paths []string, logger log.Logger) *Exporter {
 			"Swap fail count", []string{"cgroup", "jobid"}, nil),
 		info: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "", "info"),
 			"User slice information", []string{"cgroup", "username", "uid", "jobid"}, nil),
-		processExec: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "", "process_exec_count"),
-			"Count of instances of a given process", []string{"cgroup", "exec"}, nil),
 		collectError: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "exporter", "collect_error"),
 			"Indicates collection error, 0=no error, 1=error", []string{"cgroup"}, nil),
 		logger:   logger,
@@ -158,9 +153,6 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- e.memswTotal
 	ch <- e.memswFailCount
 	ch <- e.info
-	if *collectProc {
-		ch <- e.processExec
-	}
 }
 
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
@@ -184,11 +176,6 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(e.memswUsed, prometheus.GaugeValue, m.memswUsed, m.name, m.jobid)
 		ch <- prometheus.MustNewConstMetric(e.memswTotal, prometheus.GaugeValue, m.memswTotal, m.name, m.jobid)
 		ch <- prometheus.MustNewConstMetric(e.info, prometheus.GaugeValue, 1, m.name, m.username, m.uid, m.jobid)
-		if *collectProc {
-			for exec, count := range m.processExec {
-				ch <- prometheus.MustNewConstMetric(e.processExec, prometheus.GaugeValue, count, m.name, exec)
-			}
-		}
 	}
 }
 
