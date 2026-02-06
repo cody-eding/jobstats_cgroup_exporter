@@ -32,7 +32,7 @@ import (
 )
 
 var (
-	configPaths            = kingpin.Flag("config.paths", "Comma separated list of cgroup paths to check, eg /system.slice,/user.slice").Default("/system.slice/slurmstepd.scope").String()
+	configPaths            = kingpin.Flag("config.paths", "Comma separated list of cgroup paths to check, e.g. /system.slice/slurmstepd.scope").Default("/system.slice/slurmstepd.scope").String()
 	listenAddress          = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9306").String()
 	disableExporterMetrics = kingpin.Flag("web.disable-exporter-metrics", "Exclude metrics about the exporter (promhttp_*, process_*, go_*)").Default("true").Bool()
 )
@@ -74,9 +74,9 @@ func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		//nolint:errcheck
 		w.Write([]byte(`<html>
-             <head><title>cgroup Exporter</title></head>
+             <head><title>Jobstats cgroup Exporter</title></head>
              <body>
-             <h1>cgroup Exporter</h1>
+             <h1>Jobstats cgroup Exporter</h1>
              <p><a href='` + metricsEndpoint + `'>Metrics</a></p>
              </body>
              </html>`))
