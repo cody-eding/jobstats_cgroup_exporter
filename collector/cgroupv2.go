@@ -180,7 +180,7 @@ func (e *Exporter) getMetricsv2(name string, pids []int, opts cgroup2.InitOpts) 
 	// 	return metric, err
 	// }
 	if stats.Memory != nil {
-		// until slurm 25.11.1 fixes this
+		// slurm 25.11.1 supposedly fixes this, but this actual gets us "real" used memory and not caches
 		//metric.memoryRSS = float64(stats.Memory.Anon) + swapcached + float64(stats.Memory.File)
 		metric.memoryRSS = float64(stats.Memory.Usage) - float64(stats.Memory.File)
 		metric.memoryUsed = float64(stats.Memory.Usage)
