@@ -217,7 +217,7 @@ func (e *Exporter) collectv2() ([]CgroupMetric, error) {
 				continue
 			}
 			level.Debug(e.logger).Log("msg", "Get Name", "pid", pid, "path", path)
-			name := getNamev2(pidPath, path, e.logger)
+			basename, name := getNamev2(pidPath, path, e.logger)
 			if strings.Contains(path, "slurm") && filepath.Base(name) == "system" {
 				level.Debug(e.logger).Log("msg", "Skip system cgroup", "name", name)
 				continue
