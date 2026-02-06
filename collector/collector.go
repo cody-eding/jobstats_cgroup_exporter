@@ -98,7 +98,7 @@ func NewCgroupV2Collector(paths []string, logger log.Logger) Collector {
 	return NewExporter(paths, logger, true)
 }
 
-func NewExporter(paths []string, logger log.Logger, cgroupv2 bool) *Exporter {
+func NewExporter(paths []string, logger log.Logger) *Exporter {
 	return &Exporter{
 		paths: paths,
 		cpuUser: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "cpu", "user_seconds"),
@@ -134,7 +134,6 @@ func NewExporter(paths []string, logger log.Logger, cgroupv2 bool) *Exporter {
 		collectError: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "exporter", "collect_error"),
 			"Indicates collection error, 0=no error, 1=error", []string{"cgroup"}, nil),
 		logger:   logger,
-		cgroupv2: cgroupv2,
 	}
 }
 
