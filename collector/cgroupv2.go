@@ -45,7 +45,7 @@ func getInfov2(name string, pids []int, metric *CgroupMetric, logger log.Logger)
 		keepDirs := dirs[0:2]
 		basename = strings.Join(keepDirs, "/")
 	}
-	slurmPattern := regexp.MustCompile("^" + basename + "(/job_([0-9]+)(/step_([^/]+)(/user/task_([0-9]+|special))?)?$")
+	slurmPattern := regexp.MustCompile("^" + basename + "/job_([0-9]+)(/step_([^/]+)(/user/task_([0-9]+|special))?)?$")
 	slurmMatch := slurmPattern.FindStringSubmatch(name)
 	level.Info(logger).Log("msg", "Got for match", "name", name, "len(slurmMatch)", len(slurmMatch), "slurmMatch", fmt.Sprintf("%v", slurmMatch))
 	if len(slurmMatch) == 2 {
