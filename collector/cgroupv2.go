@@ -36,7 +36,8 @@ var (
 )
 
 func getInfov2(name string, pids []int, metric *CgroupMetric, logger log.Logger) {
-	var name string
+	dirs := strings.Split(pidPath, "/")
+	var name basename
 	if strings.Contains(path, "slurm") {
 		keepDirs := dirs[0:3]
 		basename = strings.Join(keepDirs, "/")
