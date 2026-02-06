@@ -166,6 +166,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		if m.task == "" && m.step == "" {
 			uid, _ := strconv.ParseFloat(m.uid, 64)
 			ch <- prometheus.MustNewConstMetric(e.uid, prometheus.GaugeValue, uid, m.jobid, m.username)
+			ch <- prometheus.MustNewConstMetric(e.info, prometheus.GaugeValue, 1, m.name, m.username, m.uid, m.jobid)
 		}
 		ch <- prometheus.MustNewConstMetric(e.cpuUser, prometheus.GaugeValue, m.cpuUser, m.name, m.jobid, m.step, m.task)
 		ch <- prometheus.MustNewConstMetric(e.cpuSystem, prometheus.GaugeValue, m.cpuSystem, m.name, m.jobid, m.step, m.task)
@@ -181,7 +182,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(e.memoryFailCount, prometheus.GaugeValue, m.memoryFailCount, m.name, m.jobid, m.step, m.task)
 		ch <- prometheus.MustNewConstMetric(e.memswUsed, prometheus.GaugeValue, m.memswUsed, m.name, m.jobid, m.step, m.task)
 		ch <- prometheus.MustNewConstMetric(e.memswTotal, prometheus.GaugeValue, m.memswTotal, m.name, m.jobid, m.step, m.task)
-		ch <- prometheus.MustNewConstMetric(e.info, prometheus.GaugeValue, 1, m.name, m.username, m.uid, m.jobid)
+
 	}
 }
 
