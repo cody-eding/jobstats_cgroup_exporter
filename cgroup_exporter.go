@@ -28,7 +28,7 @@ import (
 	"github.com/prometheus/common/promlog"
 	"github.com/prometheus/common/promlog/flag"
 	"github.com/prometheus/common/version"
-	"github.com/GVSU-Advanced-Research-Computing/cgroup_exporter/collector"
+	"github.com/treydock/cgroup_exporter/collector"
 )
 
 var (
