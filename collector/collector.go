@@ -163,7 +163,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		}
 
 		// unlike princeton's cgroup_exporter, uid is a string not int
-		uid, err := strconv.ParseFloat(m.uid, 64)
+		uid, _ := strconv.ParseFloat(m.uid, 64)
 
 		ch <- prometheus.MustNewConstMetric(e.uid, prometheus.GaugeValue, uid, m.jobid)
 		ch <- prometheus.MustNewConstMetric(e.cpuUser, prometheus.GaugeValue, m.cpuUser, m.name, m.jobid)
