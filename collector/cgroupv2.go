@@ -173,12 +173,12 @@ func (e *Exporter) getMetricsv2(name string, pids []int, opts cgroup2.InitOpts) 
 	}
 	// TODO: Move to https://github.com/containerd/cgroups/blob/d131035c7599c51ff4aed27903c45eb3b2cc29d0/cgroup2/manager.go#L593
 	memoryStatPath := filepath.Join(*CgroupRoot, name, "memory.stat")
-	swapcached, err := getStatv2("swapcached", memoryStatPath)
-	if err != nil {
-		level.Error(e.logger).Log("msg", "Unable to get swapcached", "path", name, "err", err)
-		metric.err = true
-		return metric, err
-	}
+	// swapcached, err := getStatv2("swapcached", memoryStatPath)
+	// if err != nil {
+	// 	level.Error(e.logger).Log("msg", "Unable to get swapcached", "path", name, "err", err)
+	// 	metric.err = true
+	// 	return metric, err
+	// }
 	if stats.Memory != nil {
 		// until slurm 25.11.1 fixes this
 		//metric.memoryRSS = float64(stats.Memory.Anon) + swapcached + float64(stats.Memory.File)
