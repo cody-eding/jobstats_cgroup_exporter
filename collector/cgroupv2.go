@@ -214,17 +214,18 @@ func (e *Exporter) collectv2() ([]CgroupMetric, error) {
 			level.Debug(e.logger).Log("msg", "Get Name", "pid", pid, "path", path)
 			name := getNamev2(pidPath, path, e.logger)
 			if strings.Contains(path, "slurm") && filepath.Base(name) == "system" {
-				level.Debug(e.logger).Log("msg", "Skip system cgroup", "name", name)
+				level.Info(e.logger).Log("msg", "Skip system cgroup", "name", name)
 				continue
 			}
 			// skip paths ending in slurm
 			// i.e. /system.slice/slurmstepd.scope/job_223344/step_batch/slurm
 			if strings.Contains(path, "slurm") && strings.HasSuffix(name, "/slurm") {
-				level.Debug(e.logger).Log("msg", "Skip slurm cgroup", "name", name)
+				level.Info(e.logger).Log("msg", "Skip slurm cgroup", "name", name)
 				continue
 			}
 			if !sliceContains(names, name) {
 				names = append(names, name)
+				level.Info(e.logger).Log("msg", name)
 			}
 			if val, ok := pids[name]; ok {
 				if !sliceContains(val, pid) {
