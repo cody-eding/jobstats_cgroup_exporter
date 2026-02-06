@@ -36,12 +36,7 @@ var (
 )
 
 func getInfov2(name string, pids []int, metric *CgroupMetric, logger log.Logger) {
-	dirs := strings.Split(name, "/")
-	var basename string
-	keepDirs := dirs[0:3]
-	basename = strings.Join(keepDirs, "/")
-
-	slurmPattern := regexp.MustCompile("^" + basename + "/job_([0-9]+)(/step_([^/]+)(/user/task_([0-9]+|special))?)?$")
+	slurmPattern := regexp.MustCompile("/job_([0-9]+)(/step_([^/]+)(/user/task_([0-9]+|special))?)?$")
 	slurmMatch := slurmPattern.FindStringSubmatch(name)
 	level.Info(logger).Log("msg", "Got for match", "name", name, "len(slurmMatch)", len(slurmMatch), "slurmMatch", fmt.Sprintf("%v", slurmMatch))
 	if len(slurmMatch) == 6 {
@@ -89,18 +84,41 @@ func getInfov2(name string, pids []int, metric *CgroupMetric, logger log.Logger)
 	}
 }
 
-func getNamev2(pidPath string, path string, logger log.Logger) string {
+func getNamev2(pidPath string, path string, logger log.Logger) []string {
 	dirs := strings.Split(pidPath, "/")
-	var name string
+	var names []string
+	
 	if strings.Contains(path, "slurm") {
-		keepDirs := dirs[0:4]
-		name = strings.Join(keepDirs, "/")
+		// For slurm paths, collect at multiple levels:
+		// 1. The full task path (e.g., job_X/step_Y/user/task_Z)
+		// 2. The job level (e.g., job_X)
+		
+		// Find the job_* index
+		jobIdx := -1
+		for i, dir := range dirs {
+			if strings.HasPrefix(dir, "job_") {
+				jobIdx = i
+				break
+			}
+		}
+		
+		if jobIdx >= 0 {
+			// Add the full path
+			names = append(names, pidPath)
+			
+			// Add the job level only (just up to job_X)
+			jobLevelDirs := dirs[0:jobIdx+1]
+			jobLevelName := strings.Join(jobLevelDirs, "/")
+			names = append(names, jobLevelName)
+		} else {
+			names = append(names, pidPath)
+		}
 	} else {
-		keepDirs := dirs[0:3]
-		name = strings.Join(keepDirs, "/")
+		names = append(names, pidPath)
 	}
-	level.Info(logger).Log("msg", "Get name from path", "name", name, "pidPath", pidPath, "path", path, "dirs", fmt.Sprintf("+%v", dirs))
-	return pidPath
+	
+	level.Debug(logger).Log("msg", "Get names from path", "names", fmt.Sprintf("%v", names), "pidPath", pidPath, "path", path)
+	return names
 }
 
 
@@ -217,29 +235,29 @@ func (e *Exporter) collectv2() ([]CgroupMetric, error) {
 				continue
 			}
 			level.Debug(e.logger).Log("msg", "Get Name", "pid", pid, "path", path)
-			name := getNamev2(pidPath, path, e.logger)
-			if strings.Contains(path, "slurm") && filepath.Base(name) == "system" {
-				level.Info(e.logger).Log("msg", "Skip system cgroup", "name", name)
-				continue
-			}
-			// skip paths ending in slurm
-			// i.e. /system.slice/slurmstepd.scope/job_223344/step_batch/slurm
-			if strings.Contains(path, "slurm") && strings.HasSuffix(name, "/slurm") {
-				level.Info(e.logger).Log("msg", "Skip slurm cgroup", "name", name)
-				continue
-			}
-			if !sliceContains(names, name) {
-				names = append(names, name)
-			}
-			if val, ok := pids[name]; ok {
-				if !sliceContains(val, pid) {
-					val = append(val, pid)
+			// claude
+			nameList := getNamev2(pidPath, path, e.logger)
+			for _, name := range nameList {
+				if strings.Contains(path, "slurm") && filepath.Base(name) == "system" {
+					level.Info(e.logger).Log("msg", "Skip system cgroup", "name", name)
+					continue
 				}
-				pids[name] = val
-			} else {
-				pids[name] = []int{pid}
+				if strings.Contains(path, "slurm") && strings.HasSuffix(name, "/slurm") {
+					level.Info(e.logger).Log("msg", "Skip slurm cgroup", "name", name)
+					continue
+				}
+				if !sliceContains(names, name) {
+					names = append(names, name)
+				}
+				if val, ok := pids[name]; ok {
+					if !sliceContains(val, pid) {
+						val = append(val, pid)
+					}
+					pids[name] = val
+				} else {
+					pids[name] = []int{pid}
+				}
 			}
-		}
 		wg := &sync.WaitGroup{}
 		wg.Add(len(names))
 		for _, name := range names {
