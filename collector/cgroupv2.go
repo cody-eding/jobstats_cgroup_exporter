@@ -38,9 +38,8 @@ var (
 func getInfov2(name string, pids []int, metric *CgroupMetric, logger log.Logger) {
 	slurmPattern := regexp.MustCompile("/job_([0-9]+)(/step_([^/]+)(/user/task_([0-9]+|special))?)?$")
 	slurmMatch := slurmPattern.FindStringSubmatch(name)
-	level.Info(logger).Log("msg", "Got for match", "name", name, "len(slurmMatch)", len(slurmMatch), "slurmMatch", fmt.Sprintf("%v", slurmMatch))
+	level.Debug(logger).Log("msg", "Got for match", "name", name, "len(slurmMatch)", len(slurmMatch), "slurmMatch", fmt.Sprintf("%v", slurmMatch))
 	if len(slurmMatch) == 6 {
-		level.Info(logger).Log("msg", "Two  matches!")
 		metric.job = true
 		metric.jobid = slurmMatch[1]
 		metric.step = slurmMatch[3]
@@ -89,9 +88,9 @@ func getNamev2(pidPath string, path string, logger log.Logger) []string {
 	var names []string
 	
 	if strings.Contains(path, "slurm") {
-		// For slurm paths, collect at multiple levels:
-		// 1. The full task path (e.g., job_X/step_Y/user/task_Z)
-		// 2. The job level (e.g., job_X)
+		// for slurm paths, collect at multiple levels:
+		// 1) full task path (e.g., job_X/step_Y/user/task_Z)
+		// 2) job level (e.g., job_X)
 		
 		// Find the job_* index
 		jobIdx := -1
@@ -235,7 +234,6 @@ func (e *Exporter) collectv2() ([]CgroupMetric, error) {
 				continue
 			}
 			level.Debug(e.logger).Log("msg", "Get Name", "pid", pid, "path", path)
-			// claude
 			nameList := getNamev2(pidPath, path, e.logger)
 			for _, name := range nameList {
 				if strings.Contains(path, "slurm") && filepath.Base(name) == "system" {
@@ -271,6 +269,7 @@ func (e *Exporter) collectv2() ([]CgroupMetric, error) {
 					level.Error(e.logger).Log("msg", "Unable to get PIDs for name", "name", n)
 					return
 				}
+				level.Error(e.logger).Log("msg", n)
 				metric, _ := e.getMetricsv2(n, pids, opts)
 				metricLock.Lock()
 				metrics = append(metrics, metric)
