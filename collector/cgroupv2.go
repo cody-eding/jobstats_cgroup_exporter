@@ -87,15 +87,15 @@ func getNamev2(pidPath string, path string, logger log.Logger) string {
 	dirs := strings.Split(pidPath, "/")
 	var name string
 	// if strings.Contains(path, "slurm") {
-	keepDirs := dirs[2:]
-	name = strings.Join(keepDirs, "/")
+	// keepDirs := dirs[2:]
+	..name = strings.Join(keepDirs, "/")
 	// } else {
 	// 	keepDirs := dirs[0:3]
 	// 	name = strings.Join(keepDirs, "/")
 	// }
 
 	level.Info(logger).Log("msg", "Get name from path", "name", name, "pidPath", pidPath, "path", path, "dirs", fmt.Sprintf("+%v", dirs))
-	return name
+	return pidPath
 }
 
 func getStatv2(name string, path string) (float64, error) {
