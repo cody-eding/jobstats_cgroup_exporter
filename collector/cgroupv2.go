@@ -172,7 +172,7 @@ func (e *Exporter) getMetricsv2(name string, pids []int, opts cgroup2.InitOpts) 
 		metric.cpuTotal = float64(stats.CPU.UsageUsec) / 1000000.0
 	}
 	// TODO: Move to https://github.com/containerd/cgroups/blob/d131035c7599c51ff4aed27903c45eb3b2cc29d0/cgroup2/manager.go#L593
-	memoryStatPath := filepath.Join(*CgroupRoot, name, "memory.stat")
+	// memoryStatPath := filepath.Join(*CgroupRoot, name, "memory.stat")
 	// swapcached, err := getStatv2("swapcached", memoryStatPath)
 	// if err != nil {
 	// 	level.Error(e.logger).Log("msg", "Unable to get swapcached", "path", name, "err", err)
