@@ -34,7 +34,7 @@ import (
 var (
 	configPaths            = kingpin.Flag("config.paths", "Comma separated list of cgroup paths to check, eg /system.slice,/user.slice").Default("/system.slice/slurmstepd.scope").String()
 	listenAddress          = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9306").String()
-	disableExporterMetrics = kingpin.Flag("web.disable-exporter-metrics", "Exclude metrics about the exporter (promhttp_*, process_*, go_*)").Default("false").Bool()
+	disableExporterMetrics = kingpin.Flag("web.disable-exporter-metrics", "Exclude metrics about the exporter (promhttp_*, process_*, go_*)").Default("true").Bool()
 )
 
 func metricsHandler(logger log.Logger) http.HandlerFunc {
