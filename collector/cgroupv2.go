@@ -129,7 +129,7 @@ func getStatv2(name string, path string) (float64, error) {
 	return 0, fmt.Errorf("unable to find stat key %s in %s", name, path)
 }
 
-func (e *Exporter) getMetricsv2(name string, pids []int, opts cgroup2.InitOpts) (CgroupMetric, error) {
+func (e *Exporter) getMetricsv2(basename string, name string, pids []int, opts cgroup2.InitOpts) (CgroupMetric, error) {
 	metric := CgroupMetric{name: name}
 	level.Debug(e.logger).Log("msg", "Loading cgroup", "path", name)
 	ctrl, err := cgroup2.Load(name, opts)
@@ -252,7 +252,7 @@ func (e *Exporter) collectv2() ([]CgroupMetric, error) {
 					level.Error(e.logger).Log("msg", "Unable to get PIDs for name", "name", n)
 					return
 				}
-				metric, _ := e.getMetricsv2(n, pids, opts)
+				metric, _ := e.getMetricsv2(basename, n, pids, opts)
 				metricLock.Lock()
 				metrics = append(metrics, metric)
 				metricLock.Unlock()
