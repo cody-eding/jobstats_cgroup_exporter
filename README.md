@@ -1,8 +1,7 @@
-# cgroup Prometheus exporter
+# Jobstats-Compatible cgroup Prometheus Exporter
+
 [![GitHub release](https://img.shields.io/github/v/release/GVSU-Advanced-Research-Computing/jobstats_cgroup_exporter?include_prereleases&sort=semver)](https://github.com/GVSU-Advanced-Research-Computing/jobstats_cgroup_exporter/releases/latest)
 ![GitHub All Releases](https://img.shields.io/github/downloads/GVSU-Advanced-Research-Computing/jobstats_cgroup_exporter/total)
-
-# Jobstats-Compatible cgroup Prometheus Exporter
 
 The `jobstats_cgroup_exporter` produces metrics from v2 cgroups specifically for use with [Jobstats](https://princetonuniversity.github.io/jobstats/), a tool used for monitoring resource utilization on Slurm HPC clusters.
 
