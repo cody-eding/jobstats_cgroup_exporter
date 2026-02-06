@@ -93,11 +93,11 @@ func getNamev2(pidPath string, path string, logger log.Logger) string {
 	if strings.Contains(path, "slurm") {
 		keepDirs := dirs[0:4]
 		basename = strings.Join(keepDirs, "/")
-		name = strings.Join("/")
+		name = pidPath
 	} else {
 		keepDirs := dirs[0:3]
 		basename = strings.Join(keepDirs, "/")
-		name = strings.Join("/")
+		name = pidPath
 	}
 	level.Info(logger).Log("msg", "Get name from path", "name", name, "pidPath", pidPath, "path", path, "dirs", fmt.Sprintf("+%v", dirs))
 	return basename, name
