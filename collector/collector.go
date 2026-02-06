@@ -64,7 +64,6 @@ type Exporter struct {
 	info            *prometheus.Desc
 	uid				*prometheus.Desc
 	logger          log.Logger
-	//cgroupv2        bool
 }
 
 type CgroupMetric struct {
@@ -100,7 +99,7 @@ func NewExporter(paths []string, logger log.Logger) *Exporter {
 	return &Exporter{
 		paths: paths,
 		uid: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "", "uid"),
-			"Uid number of user running this job", []string{"jobid"}, nil),
+			"Uid number of user running this job", []string{"jobid", "username"}, nil),
 		cpuUser: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "cpu", "user_seconds"),
 			"Cumalitive CPU user seconds for cgroup", []string{"cgroup", "jobid"}, nil),
 		cpuSystem: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "cpu", "system_seconds"),
@@ -162,10 +161,11 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 			ch <- prometheus.MustNewConstMetric(e.collectError, prometheus.GaugeValue, 1, m.name)
 		}
 
-		// unlike princeton's cgroup_exporter, uid is a string not int
+		// unlike princeton's cgroup_exporter, uid is returned as a string not int
+		// convert this to the needed float value
 		uid, _ := strconv.ParseFloat(m.uid, 64)
 
-		ch <- prometheus.MustNewConstMetric(e.uid, prometheus.GaugeValue, uid, m.jobid)
+		ch <- prometheus.MustNewConstMetric(e.uid, prometheus.GaugeValue, uid, m.jobid, m.username)
 		ch <- prometheus.MustNewConstMetric(e.cpuUser, prometheus.GaugeValue, m.cpuUser, m.name, m.jobid)
 		ch <- prometheus.MustNewConstMetric(e.cpuSystem, prometheus.GaugeValue, m.cpuSystem, m.name, m.jobid)
 		ch <- prometheus.MustNewConstMetric(e.cpuTotal, prometheus.GaugeValue, m.cpuTotal, m.name, m.jobid)
