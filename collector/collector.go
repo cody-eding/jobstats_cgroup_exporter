@@ -163,7 +163,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
 		// unlike princeton's cgroup_exporter, uid is returned as a string not int
 		// convert this to the needed float value
-		if m.task == "" && m.step == "" {}
+		if m.task == "" && m.step == "" {
 			uid, _ := strconv.ParseFloat(m.uid, 64)
 			ch <- prometheus.MustNewConstMetric(e.uid, prometheus.GaugeValue, uid, m.jobid, m.username)
 		}
