@@ -6,4 +6,4 @@
 * Removed support for external process tracking.
 * Removed support for cgroupv1.
 * Fixed calculation of memory RSS for cgroupv2.
-* Disabled exporter metric by default.
+* Disabled exporter metrics by default.
