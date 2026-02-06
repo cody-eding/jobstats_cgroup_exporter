@@ -171,7 +171,7 @@ func (e *Exporter) getMetricsv2(name string, pids []int, opts cgroup2.InitOpts) 
 		metric.cpuSystem = float64(stats.CPU.SystemUsec) / 1000000.0
 		metric.cpuTotal = float64(stats.CPU.UsageUsec) / 1000000.0
 	}
-	level.Info(e.logger).Log(float64(stats.Memory.Usage.Usage))
+	level.Info(e.logger).Log(float64(stats.Memory))
 	// TODO: Move to https://github.com/containerd/cgroups/blob/d131035c7599c51ff4aed27903c45eb3b2cc29d0/cgroup2/manager.go#L593
 	memoryStatPath := filepath.Join(*CgroupRoot, name, "memory.stat")
 	swapcached, err := getStatv2("swapcached", memoryStatPath)
@@ -181,7 +181,7 @@ func (e *Exporter) getMetricsv2(name string, pids []int, opts cgroup2.InitOpts) 
 		return metric, err
 	}
 	if stats.Memory != nil {
-		metric.memoryRSS = float64(stats.Memory.Anon) + swapcached + float64(stats.Memory.File)
+		metric.memoryRSS = float64(stats.Memory.Anon) // removed + swapcached + float64(stats.Memory.File) as this was just giving us Usage
 		metric.memoryUsed = float64(stats.Memory.Usage)
 		metric.memoryTotal = float64(stats.Memory.UsageLimit)
 		metric.memoryCache = float64(stats.Memory.File)
