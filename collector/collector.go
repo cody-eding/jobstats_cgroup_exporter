@@ -216,7 +216,6 @@ func getProcInfo(pids []int, metric *CgroupMetric, logger log.Logger) {
 		}(pid)
 	}
 	wg.Wait()
-	metric.processExec = executables
 }
 
 func parseCpuSet(cpuset string) ([]string, error) {
