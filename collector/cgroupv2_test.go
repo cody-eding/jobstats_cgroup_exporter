@@ -15,11 +15,11 @@ package collector
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/go-kit/log"
 )
 
 func TestGetStatv2(t *testing.T) {

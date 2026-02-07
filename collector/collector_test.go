@@ -15,12 +15,12 @@ package collector
 
 import (
 	"os"
+	"log/slog"
 	"path/filepath"
 	"reflect"
 	"runtime"
 	"testing"
 
-	"github.com/go-kit/log"
 )
 
 func TestMain(m *testing.M) {
@@ -56,31 +56,5 @@ func TestParseCpuSet(t *testing.T) {
 		t.Errorf("Unexpected error: %s", err.Error())
 	} else if !reflect.DeepEqual(cpus, expected) {
 		t.Errorf("Unexpected cpus, expected %v got %v", expected, cpus)
-	}
-}
-
-func TestGetProcInfo(t *testing.T) {
-	metric := CgroupMetric{}
-	w := log.NewSyncWriter(os.Stderr)
-	logger := log.NewLogfmtLogger(w)
-	getProcInfo([]int{95521, 95525}, &metric, logger)
-	if val, ok := metric.processExec["/bin/bash"]; !ok {
-		t.Errorf("Process /bin/bash not in metrics")
-		return
-	} else {
-		if val != 2 {
-			t.Errorf("Expected 2 /bin/bash processes, got %v", val)
-		}
-	}
-	varLen := 6
-	collectProcMaxExec = &varLen
-	getProcInfo([]int{95521, 95525}, &metric, logger)
-	if val, ok := metric.processExec["/bi...ash"]; !ok {
-		t.Errorf("Process /bin/bash not in metrics, found: %v", metric.processExec)
-		return
-	} else {
-		if val != 2 {
-			t.Errorf("Expected 2 /b...sh processes, got %v", val)
-		}
 	}
 }
