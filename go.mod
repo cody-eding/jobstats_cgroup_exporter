@@ -1,4 +1,4 @@
-module github.com/treydock/cgroup_exporter
+module github.com/GVSU-Advanced-Research-Computing/cgroup_exporter
 
 go 1.24.0
 
