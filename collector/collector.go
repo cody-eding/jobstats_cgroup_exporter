@@ -63,7 +63,7 @@ type Exporter struct {
 	memswFailCount  *prometheus.Desc
 	info            *prometheus.Desc
 	uid				*prometheus.Desc
-	logger          log.Logger
+	logger          *slog.Logger
 }
 
 type CgroupMetric struct {
@@ -91,11 +91,11 @@ type CgroupMetric struct {
 	err             bool
 }
 
-func NewCgroupV2Collector(paths []string, logger *slog.Logger) Collector {
+func NewCgroupV2Collector(paths []string, logger *s*slog.Logger) Collector {
 	return NewExporter(paths, logger)
 }
 
-func NewExporter(paths []string, logger log.Logger) *Exporter {
+func NewExporter(paths []string, logger *s*slog.Logger) *Exporter {
 	return &Exporter{
 		paths: paths,
 		uid: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "", "uid"),
@@ -222,7 +222,7 @@ func parseCpuSet(cpuset string) ([]string, error) {
 	return cpus, nil
 }
 
-func getCPUs(path string, logger log.Logger) ([]string, error) {
+func getCPUs(path string, logger *slog.Logger) ([]string, error) {
 	if !fileExists(path) {
 		return nil, nil
 	}
