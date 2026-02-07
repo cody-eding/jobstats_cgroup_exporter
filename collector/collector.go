@@ -52,7 +52,7 @@ type Exporter struct {
 	cpuSystem       *prometheus.Desc
 	cpuTotal        *prometheus.Desc
 	cpus            *prometheus.Desc
-	cpu_info        *prometheus.Desc
+	cpuInfo         *prometheus.Desc
 	memoryRSS       *prometheus.Desc
 	memoryCache     *prometheus.Desc
 	memoryUsed      *prometheus.Desc
@@ -108,7 +108,7 @@ func NewExporter(paths []string, logger *slog.Logger) *Exporter {
 			"Cumalitive CPU total seconds for cgroup", []string{"cgroup", "jobid", "step", "task"}, nil),
 		cpus: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "", "cpus"),
 			"Number of CPUs in the cgroup", []string{"cgroup", "jobid", "step", "task"}, nil),
-		cpu_info: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "", "cpu_info"),
+		cpuInfo: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "", "cpu_info"),
 			"Information about the cgroup CPUs", []string{"cgroup", "cpus", "jobid"}, nil),
 		memoryRSS: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "memory", "rss_bytes"),
 			"Memory RSS used in bytes", []string{"cgroup", "jobid", "step", "task"}, nil),
@@ -140,7 +140,7 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- e.cpuSystem
 	ch <- e.cpuTotal
 	ch <- e.cpus
-	ch <- e.cpu_info
+	ch <- e.cpuInfo
 	ch <- e.memoryRSS
 	ch <- e.memoryCache
 	ch <- e.memoryUsed
@@ -175,7 +175,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
 		// cpu_list will only be populated for parent cgroup
 		if m.cpu_list != "" {
-			ch <- prometheus.MustNewConstMetric(e.cpu_info, prometheus.GaugeValue, 1, m.name, m.cpu_list, m.jobid)
+			ch <- prometheus.MustNewConstMetric(e.cpuInfo, prometheus.GaugeValue, 1, m.name, m.cpu_list, m.jobid)
 		}
 		ch <- prometheus.MustNewConstMetric(e.memoryRSS, prometheus.GaugeValue, m.memoryRSS, m.name, m.jobid, m.step, m.task)
 		ch <- prometheus.MustNewConstMetric(e.memoryUsed, prometheus.GaugeValue, m.memoryUsed, m.name, m.jobid, m.step, m.task)
