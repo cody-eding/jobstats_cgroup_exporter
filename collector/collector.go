@@ -91,11 +91,11 @@ type CgroupMetric struct {
 	err             bool
 }
 
-func NewCgroupV2Collector(paths []string, logger *s*slog.Logger) Collector {
+func NewCgroupV2Collector(paths []string, logger *slog.Logger) Collector {
 	return NewExporter(paths, logger)
 }
 
-func NewExporter(paths []string, logger *s*slog.Logger) *Exporter {
+func NewExporter(paths []string, logger *slog.Logger) *Exporter {
 	return &Exporter{
 		paths: paths,
 		uid: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "", "uid"),
