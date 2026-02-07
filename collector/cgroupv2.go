@@ -16,6 +16,7 @@ package collector
 import (
 	"bufio"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -25,8 +26,6 @@ import (
 	"sync"
 
 	"github.com/containerd/cgroups/v3/cgroup2"
-	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
 	"github.com/prometheus/procfs"
 )
 
