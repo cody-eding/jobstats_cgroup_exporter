@@ -21,6 +21,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/GVSU-Advanced-Research-Computing/jobstats_cgroup_exporter/collector"
 	"github.com/alecthomas/kingpin/v2"
 	"github.com/prometheus/client_golang/prometheus"
 	versionCollector "github.com/prometheus/client_golang/prometheus/collectors/version"
@@ -28,7 +29,6 @@ import (
 	"github.com/prometheus/common/promslog"
 	"github.com/prometheus/common/promslog/flag"
 	"github.com/prometheus/common/version"
-	"github.com/treydock/cgroup_exporter/collector"
 )
 
 var (
