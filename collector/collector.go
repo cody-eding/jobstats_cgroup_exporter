@@ -1,3 +1,4 @@
+// Copyright 2026 Grand Valley State University
 // Copyright 2020 Trey Dockendorf
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,7 +15,7 @@
 package collector
 
 import (
-	"fmt"
+	"log/slog"
 	"os"
 	"reflect"
 	"strconv"
@@ -22,14 +23,10 @@ import (
 	"sync"
 
 	"github.com/alecthomas/kingpin/v2"
-	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/procfs"
 )
 
 var (
-	collectProc        = kingpin.Flag("collect.proc", "Boolean that sets if to collect proc information").Default("false").Bool()
 	CgroupRoot         = kingpin.Flag("path.cgroup.root", "Root path to cgroup fs").Default(defCgroupRoot).String()
 	collectProcMaxExec = kingpin.Flag("collect.proc.max-exec", "Max length of process executable to record").Default("100").Int()
 	ProcRoot           = kingpin.Flag("path.proc.root", "Root path to proc fs").Default(defProcRoot).String()
@@ -55,7 +52,7 @@ type Exporter struct {
 	cpuSystem       *prometheus.Desc
 	cpuTotal        *prometheus.Desc
 	cpus            *prometheus.Desc
-	cpu_info        *prometheus.Desc
+	cpuInfo         *prometheus.Desc
 	memoryRSS       *prometheus.Desc
 	memoryCache     *prometheus.Desc
 	memoryUsed      *prometheus.Desc
@@ -65,9 +62,8 @@ type Exporter struct {
 	memswTotal      *prometheus.Desc
 	memswFailCount  *prometheus.Desc
 	info            *prometheus.Desc
-	processExec     *prometheus.Desc
-	logger          log.Logger
-	cgroupv2        bool
+	uid             *prometheus.Desc
+	logger          *slog.Logger
 }
 
 type CgroupMetric struct {
@@ -90,66 +86,61 @@ type CgroupMetric struct {
 	uid             string
 	username        string
 	jobid           string
-	processExec     map[string]float64
+	step            string
+	task            string
 	err             bool
 }
 
-func NewCgroupCollector(cgroupV2 bool, paths []string, logger log.Logger) Collector {
-	var collector Collector
-	if cgroupV2 {
-		collector = NewCgroupV2Collector(paths, logger)
-	} else {
-		collector = NewCgroupV1Collector(paths, logger)
-	}
-	return collector
+func NewCgroupV2Collector(paths []string, logger *slog.Logger) Collector {
+	return NewExporter(paths, logger)
 }
 
-func NewExporter(paths []string, logger log.Logger, cgroupv2 bool) *Exporter {
+func NewExporter(paths []string, logger *slog.Logger) *Exporter {
 	return &Exporter{
 		paths: paths,
+		uid: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "", "uid"),
+			"Uid number of user running this job", []string{"jobid", "username"}, nil),
 		cpuUser: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "cpu", "user_seconds"),
-			"Cumalitive CPU user seconds for cgroup", []string{"cgroup"}, nil),
+			"Cumalitive CPU user seconds for cgroup", []string{"cgroup", "jobid", "step", "task"}, nil),
 		cpuSystem: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "cpu", "system_seconds"),
-			"Cumalitive CPU system seconds for cgroup", []string{"cgroup"}, nil),
+			"Cumalitive CPU system seconds for cgroup", []string{"cgroup", "jobid", "step", "task"}, nil),
 		cpuTotal: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "cpu", "total_seconds"),
-			"Cumalitive CPU total seconds for cgroup", []string{"cgroup"}, nil),
+			"Cumalitive CPU total seconds for cgroup", []string{"cgroup", "jobid", "step", "task"}, nil),
 		cpus: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "", "cpus"),
-			"Number of CPUs in the cgroup", []string{"cgroup"}, nil),
-		cpu_info: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "", "cpu_info"),
-			"Information about the cgroup CPUs", []string{"cgroup", "cpus"}, nil),
+			"Number of CPUs in the cgroup", []string{"cgroup", "jobid", "step", "task"}, nil),
+		cpuInfo: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "", "cpu_info"),
+			"Information about the cgroup CPUs", []string{"cgroup", "cpus", "jobid"}, nil),
 		memoryRSS: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "memory", "rss_bytes"),
-			"Memory RSS used in bytes", []string{"cgroup"}, nil),
+			"Memory RSS used in bytes", []string{"cgroup", "jobid", "step", "task"}, nil),
 		memoryCache: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "memory", "cache_bytes"),
-			"Memory cache used in bytes", []string{"cgroup"}, nil),
+			"Memory cache used in bytes", []string{"cgroup", "jobid", "step", "task"}, nil),
 		memoryUsed: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "memory", "used_bytes"),
-			"Memory used in bytes", []string{"cgroup"}, nil),
+			"Memory used in bytes", []string{"cgroup", "jobid", "step", "task"}, nil),
 		memoryTotal: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "memory", "total_bytes"),
-			"Memory total given to cgroup in bytes", []string{"cgroup"}, nil),
+			"Memory total given to cgroup in bytes", []string{"cgroup", "jobid", "step", "task"}, nil),
 		memoryFailCount: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "memory", "fail_count"),
-			"Memory fail count", []string{"cgroup"}, nil),
+			"Memory fail count", []string{"cgroup", "jobid", "step", "task"}, nil),
 		memswUsed: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "memsw", "used_bytes"),
-			"Swap used in bytes", []string{"cgroup"}, nil),
+			"Swap used in bytes", []string{"cgroup", "jobid", "step", "task"}, nil),
 		memswTotal: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "memsw", "total_bytes"),
-			"Swap total given to cgroup in bytes", []string{"cgroup"}, nil),
+			"Swap total given to cgroup in bytes", []string{"cgroup", "jobid", "step", "task"}, nil),
 		memswFailCount: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "memsw", "fail_count"),
-			"Swap fail count", []string{"cgroup"}, nil),
+			"Swap fail count", []string{"cgroup", "jobid", "step", "task"}, nil),
 		info: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "", "info"),
 			"User slice information", []string{"cgroup", "username", "uid", "jobid"}, nil),
-		processExec: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "", "process_exec_count"),
-			"Count of instances of a given process", []string{"cgroup", "exec"}, nil),
 		collectError: prometheus.NewDesc(prometheus.BuildFQName(Namespace, "exporter", "collect_error"),
 			"Indicates collection error, 0=no error, 1=error", []string{"cgroup"}, nil),
-		logger:   logger,
-		cgroupv2: cgroupv2,
+		logger: logger,
 	}
 }
 
 func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
+	ch <- e.uid
 	ch <- e.cpuUser
 	ch <- e.cpuSystem
 	ch <- e.cpuTotal
 	ch <- e.cpus
-	ch <- e.cpu_info
+	ch <- e.cpuInfo
 	ch <- e.memoryRSS
 	ch <- e.memoryCache
 	ch <- e.memoryUsed
@@ -159,88 +150,42 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- e.memswTotal
 	ch <- e.memswFailCount
 	ch <- e.info
-	if *collectProc {
-		ch <- e.processExec
-	}
 }
 
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	var metrics []CgroupMetric
-	if e.cgroupv2 {
-		metrics, _ = e.collectv2()
-	} else {
-		metrics, _ = e.collectv1()
-	}
+	metrics, _ = e.collectv2()
 
 	for _, m := range metrics {
 		if m.err {
 			ch <- prometheus.MustNewConstMetric(e.collectError, prometheus.GaugeValue, 1, m.name)
 		}
-		ch <- prometheus.MustNewConstMetric(e.cpuUser, prometheus.GaugeValue, m.cpuUser, m.name)
-		ch <- prometheus.MustNewConstMetric(e.cpuSystem, prometheus.GaugeValue, m.cpuSystem, m.name)
-		ch <- prometheus.MustNewConstMetric(e.cpuTotal, prometheus.GaugeValue, m.cpuTotal, m.name)
-		ch <- prometheus.MustNewConstMetric(e.cpus, prometheus.GaugeValue, float64(m.cpus), m.name)
-		ch <- prometheus.MustNewConstMetric(e.cpu_info, prometheus.GaugeValue, 1, m.name, m.cpu_list)
-		ch <- prometheus.MustNewConstMetric(e.memoryRSS, prometheus.GaugeValue, m.memoryRSS, m.name)
-		ch <- prometheus.MustNewConstMetric(e.memoryUsed, prometheus.GaugeValue, m.memoryUsed, m.name)
-		ch <- prometheus.MustNewConstMetric(e.memoryTotal, prometheus.GaugeValue, m.memoryTotal, m.name)
-		ch <- prometheus.MustNewConstMetric(e.memoryCache, prometheus.GaugeValue, m.memoryCache, m.name)
-		ch <- prometheus.MustNewConstMetric(e.memoryFailCount, prometheus.GaugeValue, m.memoryFailCount, m.name)
-		ch <- prometheus.MustNewConstMetric(e.memswUsed, prometheus.GaugeValue, m.memswUsed, m.name)
-		ch <- prometheus.MustNewConstMetric(e.memswTotal, prometheus.GaugeValue, m.memswTotal, m.name)
-		// These metrics currently have no cgroup v2 information
-		if !e.cgroupv2 {
-			ch <- prometheus.MustNewConstMetric(e.memswFailCount, prometheus.GaugeValue, m.memswFailCount, m.name)
-		}
-		if m.userslice || m.job {
+
+		// unlike princeton's cgroup_exporter, uid is returned as a string not int
+		// convert this to the needed float value
+		if m.task == "" && m.step == "" {
+			uid, _ := strconv.ParseFloat(m.uid, 64)
+			ch <- prometheus.MustNewConstMetric(e.uid, prometheus.GaugeValue, uid, m.jobid, m.username)
 			ch <- prometheus.MustNewConstMetric(e.info, prometheus.GaugeValue, 1, m.name, m.username, m.uid, m.jobid)
 		}
-		if *collectProc {
-			for exec, count := range m.processExec {
-				ch <- prometheus.MustNewConstMetric(e.processExec, prometheus.GaugeValue, count, m.name, exec)
-			}
-		}
-	}
-}
+		ch <- prometheus.MustNewConstMetric(e.cpuUser, prometheus.GaugeValue, m.cpuUser, m.name, m.jobid, m.step, m.task)
+		ch <- prometheus.MustNewConstMetric(e.cpuSystem, prometheus.GaugeValue, m.cpuSystem, m.name, m.jobid, m.step, m.task)
+		ch <- prometheus.MustNewConstMetric(e.cpuTotal, prometheus.GaugeValue, m.cpuTotal, m.name, m.jobid, m.step, m.task)
+		ch <- prometheus.MustNewConstMetric(e.cpus, prometheus.GaugeValue, float64(m.cpus), m.name, m.jobid, m.step, m.task)
 
-func getProcInfo(pids []int, metric *CgroupMetric, logger log.Logger) {
-	executables := make(map[string]float64)
-	procFS, err := procfs.NewFS(*ProcRoot)
-	if err != nil {
-		level.Error(logger).Log("msg", "Unable to open procfs", "path", *ProcRoot)
-		return
+		// cpu_list will only be populated for parent cgroup
+		if m.cpu_list != "" {
+			ch <- prometheus.MustNewConstMetric(e.cpuInfo, prometheus.GaugeValue, 1, m.name, m.cpu_list, m.jobid)
+		}
+		ch <- prometheus.MustNewConstMetric(e.memoryRSS, prometheus.GaugeValue, m.memoryRSS, m.name, m.jobid, m.step, m.task)
+		ch <- prometheus.MustNewConstMetric(e.memoryUsed, prometheus.GaugeValue, m.memoryUsed, m.name, m.jobid, m.step, m.task)
+		ch <- prometheus.MustNewConstMetric(e.memoryTotal, prometheus.GaugeValue, m.memoryTotal, m.name, m.jobid, m.step, m.task)
+		ch <- prometheus.MustNewConstMetric(e.memoryCache, prometheus.GaugeValue, m.memoryCache, m.name, m.jobid, m.step, m.task)
+		ch <- prometheus.MustNewConstMetric(e.memoryFailCount, prometheus.GaugeValue, m.memoryFailCount, m.name, m.jobid, m.step, m.task)
+		ch <- prometheus.MustNewConstMetric(e.memswUsed, prometheus.GaugeValue, m.memswUsed, m.name, m.jobid, m.step, m.task)
+		ch <- prometheus.MustNewConstMetric(e.memswTotal, prometheus.GaugeValue, m.memswTotal, m.name, m.jobid, m.step, m.task)
+
 	}
-	wg := &sync.WaitGroup{}
-	wg.Add(len(pids))
-	for _, pid := range pids {
-		go func(p int) {
-			proc, err := procFS.Proc(p)
-			if err != nil {
-				level.Error(logger).Log("msg", "Unable to read PID", "pid", p)
-				wg.Done()
-				return
-			}
-			executable, err := proc.Executable()
-			if err != nil {
-				level.Error(logger).Log("msg", "Unable to get executable for PID", "pid", p)
-				wg.Done()
-				return
-			}
-			if len(executable) > *collectProcMaxExec {
-				level.Debug(logger).Log("msg", "Executable will be truncated", "executable", executable, "len", len(executable), "pid", p)
-				trim := *collectProcMaxExec / 2
-				executable_prefix := executable[0:trim]
-				executable_suffix := executable[len(executable)-trim:]
-				executable = fmt.Sprintf("%s...%s", executable_prefix, executable_suffix)
-			}
-			metricLock.Lock()
-			executables[executable] += 1
-			metricLock.Unlock()
-			wg.Done()
-		}(pid)
-	}
-	wg.Wait()
-	metric.processExec = executables
 }
 
 func parseCpuSet(cpuset string) ([]string, error) {
@@ -277,18 +222,18 @@ func parseCpuSet(cpuset string) ([]string, error) {
 	return cpus, nil
 }
 
-func getCPUs(path string, logger log.Logger) ([]string, error) {
+func getCPUs(path string, logger *slog.Logger) ([]string, error) {
 	if !fileExists(path) {
 		return nil, nil
 	}
 	cpusData, err := os.ReadFile(path)
 	if err != nil {
-		level.Error(logger).Log("msg", "Error reading cpuset", "cpuset", path, "err", err)
+		logger.Error("Error reading cpuset", "cpuset", path, "err", err)
 		return nil, err
 	}
 	cpus, err := parseCpuSet(strings.TrimSuffix(string(cpusData), "\n"))
 	if err != nil {
-		level.Error(logger).Log("msg", "Error parsing cpu set", "cpuset", path, "err", err)
+		logger.Error("Error parsing cpu set", "cpuset", path, "err", err)
 		return nil, err
 	}
 	return cpus, nil

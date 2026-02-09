@@ -1,3 +1,4 @@
+// Copyright 2026 Grand Valley State University
 // Copyright 2020 Trey Dockendorf
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,40 +16,34 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
 
 	"github.com/alecthomas/kingpin/v2"
-	"github.com/containerd/cgroups/v3"
-	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
+	"github.com/cody-eding/jobstats_cgroup_exporter/collector"
 	"github.com/prometheus/client_golang/prometheus"
 	versionCollector "github.com/prometheus/client_golang/prometheus/collectors/version"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/prometheus/common/promlog"
-	"github.com/prometheus/common/promlog/flag"
+	"github.com/prometheus/common/promslog"
+	"github.com/prometheus/common/promslog/flag"
 	"github.com/prometheus/common/version"
-	"github.com/treydock/cgroup_exporter/collector"
 )
 
 var (
-	configPaths            = kingpin.Flag("config.paths", "Comma separated list of cgroup paths to check, eg /user.slice,/system.slice,/slurm").Required().String()
+	configPaths            = kingpin.Flag("config.paths", "Comma separated list of cgroup paths to check, e.g. /system.slice/slurmstepd.scope").Default("/system.slice/slurmstepd.scope").String()
 	listenAddress          = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9306").String()
-	disableExporterMetrics = kingpin.Flag("web.disable-exporter-metrics", "Exclude metrics about the exporter (promhttp_*, process_*, go_*)").Default("false").Bool()
+	disableExporterMetrics = kingpin.Flag("web.disable-exporter-metrics", "Exclude metrics about the exporter (promhttp_*, process_*, go_*)").Default("true").Bool()
 )
 
-func metricsHandler(logger log.Logger) http.HandlerFunc {
+func metricsHandler(logger *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		registry := prometheus.NewRegistry()
 
 		paths := strings.Split(*configPaths, ",")
 
-		var cgroupV2 bool
-		if cgroups.Mode() == cgroups.Unified {
-			cgroupV2 = true
-		}
-		cgroupCollector := collector.NewCgroupCollector(cgroupV2, paths, logger)
+		cgroupCollector := collector.NewCgroupV2Collector(paths, logger)
 		registry.MustRegister(cgroupCollector)
 		registry.MustRegister(versionCollector.NewCollector(fmt.Sprintf("%s_exporter", collector.Namespace)))
 
@@ -65,23 +60,23 @@ func metricsHandler(logger log.Logger) http.HandlerFunc {
 
 func main() {
 	metricsEndpoint := "/metrics"
-	promlogConfig := &promlog.Config{}
-	flag.AddFlags(kingpin.CommandLine, promlogConfig)
+	promslogConfig := &promslog.Config{}
+	flag.AddFlags(kingpin.CommandLine, promslogConfig)
 	kingpin.Version(version.Print("cgroup_exporter"))
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
 
-	logger := promlog.New(promlogConfig)
-	level.Info(logger).Log("msg", "Starting cgroup_exporter", "version", version.Info())
-	level.Info(logger).Log("msg", "Build context", "build_context", version.BuildContext())
-	level.Info(logger).Log("msg", "Starting Server", "address", *listenAddress)
+	logger := promslog.New(promslogConfig)
+	logger.Info("Starting cgroup_exporter", "version", version.Info())
+	logger.Info("Build context", "build_context", version.BuildContext())
+	logger.Info("Starting Server", "address", *listenAddress)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		//nolint:errcheck
 		w.Write([]byte(`<html>
-             <head><title>cgroup Exporter</title></head>
+             <head><title>Jobstats cgroup Exporter</title></head>
              <body>
-             <h1>cgroup Exporter</h1>
+             <h1>Jobstats cgroup Exporter</h1>
              <p><a href='` + metricsEndpoint + `'>Metrics</a></p>
              </body>
              </html>`))
@@ -89,7 +84,7 @@ func main() {
 	http.Handle(metricsEndpoint, metricsHandler(logger))
 	err := http.ListenAndServe(*listenAddress, nil)
 	if err != nil {
-		level.Error(logger).Log("err", err)
+		logger.Error("Operation failed", "err", err)
 		os.Exit(1)
 	}
 }

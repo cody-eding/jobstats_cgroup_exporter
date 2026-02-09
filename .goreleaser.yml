@@ -21,30 +21,14 @@ builds:
       - -X github.com/prometheus/common/version.Branch={{.Branch}}
       - -X github.com/prometheus/common/version.BuildUser=goreleaser
       - -X github.com/prometheus/common/version.BuildDate={{.Date}}
-  - id: arm64
-    main: cgroup_exporter.go
-    env:
-      - CC=aarch64-linux-gnu-gcc
-    goos:
-      - linux
-    goarch:
-      - arm64
-    ldflags:
-      - -extldflags "-static"
-      - -X github.com/prometheus/common/version.Version={{.Version}}
-      - -X github.com/prometheus/common/version.Revision={{.FullCommit}}
-      - -X github.com/prometheus/common/version.Branch={{.Branch}}
-      - -X github.com/prometheus/common/version.BuildUser=goreleaser
-      - -X github.com/prometheus/common/version.BuildDate={{.Date}}
 archives:
   - id: archive
     builds:
       - amd64
-      - arm64
     files:
       - LICENSE
       - CHANGELOG.md
-    name_template: "cgroup_exporter-{{ .Version }}.{{ .Os }}-{{ .Arch }}"
+    name_template: "jobstats_cgroup_exporter-{{ .Version }}.{{ .Os }}-{{ .Arch }}"
     wrap_in_directory: true
 checksum:
   name_template: 'checksums.txt'
